@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>Day Chip</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&display=swap">
+<style>
+/* Layout: one centered 640px column showing a single view at a time (home, setup, choose, chip), so the chip is always the hero. */
+:root{
+  --bg:#EEF1F4;
+  --surface:#FFFFFF;
+  --ink:#15202B;
+  --muted:#58646F;
+  --line:#D3D9DF;
+  --accent:#1D6B75;
+  --accent-ink:#FFFFFF;
+  --danger:#B3261E;
+  --font-ui:'Outfit',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12171C;--surface:#1B2229;--ink:#E8EDF1;--muted:#9AA7B3;--line:#2C363F;
+    --accent:#63C3CC;--accent-ink:#0A1E21;--danger:#FF8A80;color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12171C;--surface:#1B2229;--ink:#E8EDF1;--muted:#9AA7B3;--line:#2C363F;
+  --accent:#63C3CC;--accent-ink:#0A1E21;--danger:#FF8A80;color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:16px;line-height:1.5;
+  padding-block:24px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+main{max-width:640px;margin:0 auto}
+h1,h2{font-weight:600;line-height:1.15;margin:0 0 .4em;text-wrap:balance;outline:none}
+h1{font-size:2rem}
+h2{font-size:1.65rem}
+p{margin:0 0 1rem}
+.lede{color:var(--muted)}
+.meta{color:var(--muted);font-size:.95rem;margin:0}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+label,legend{display:block;font-weight:500;margin-bottom:6px;padding:0}
+fieldset{border:0;margin:0 0 1.25rem;padding:0;min-width:0}
+input[type=text],input[type=number],input[type=date]{
+  width:100%;min-height:48px;padding:0 14px;font:inherit;color:var(--ink);background:var(--surface);
+  border:1px solid var(--line);border-radius:10px;
+}
+.hint{color:var(--muted);font-size:.9rem;margin:6px 0 0}
+.field{margin-bottom:1.25rem}
+.err{color:var(--danger);min-height:1.4em;margin:0 0 .75rem;font-weight:500}
+.row{display:flex;gap:10px;flex-wrap:wrap}
+.btn{
+  min-height:46px;padding:0 18px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  color:var(--ink);font:inherit;font-weight:500;cursor:pointer;
+}
+.btn:hover{border-color:var(--muted)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent}
+.btn.wide{width:100%}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+h1:focus-visible,h2:focus-visible{outline:none}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+.seg button{
+  min-height:48px;border:0;background:transparent;color:var(--ink);font:inherit;font-weight:500;cursor:pointer;padding:0 10px;
+}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.stage{
+  background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 12px;
+  display:flex;align-items:center;justify-content:center;margin-bottom:14px;
+}
+.stage svg{display:block;height:min(58vh,380px);width:auto;max-width:100%}
+.stage.small svg{height:170px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:12px;margin-bottom:1.25rem}
+.card{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 8px 10px;
+  display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;font:inherit;color:inherit;min-width:0;
+}
+.card:hover{border-color:var(--muted)}
+.card[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.card .art{height:168px;width:100%;display:flex;align-items:center;justify-content:center}
+.card .art svg{height:100%;width:auto;max-width:100%}
+.card .nm{font-weight:500;font-size:.95rem}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-top:12px}
+.panel p{margin:0 0 10px}
+#toast{
+  position:fixed;left:0;right:0;text-align:center;pointer-events:none;
+  bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+#toast span{display:inline-block;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:500}
+</style>
+
+<main>
+  <section id="v-home" hidden>
+    <h1 tabindex="-1">Day Chip</h1>
+    <p class="lede">Pick up where you left off, or begin a new count.</p>
+    <div class="stage small" id="home-stage"></div>
+    <p class="meta" id="home-sum" style="margin-bottom:16px"></p>
+    <div class="row">
+      <button type="button" class="btn primary" id="h-prev">Start with previous chip</button>
+      <button type="button" class="btn" id="h-new">Start new chip</button>
+    </div>
+  </section>
+
+  <section id="v-setup" hidden>
+    <h2 tabindex="-1">New chip</h2>
+    <p class="lede">Name what you are counting, then tell me where the count stands.</p>
+    <form id="setup-form" novalidate>
+      <div class="field">
+        <label for="label">What is this chip for?</label>
+        <input type="text" id="label" maxlength="40" value="Days Sober" autocomplete="off">
+        <p class="hint">For example: Days Sober, Days not called by HR</p>
+      </div>
+      <fieldset>
+        <legend>How should I count?</legend>
+        <div class="seg">
+          <button type="button" id="mode-days" aria-pressed="true">Number of Days</button>
+          <button type="button" id="mode-date" aria-pressed="false">Start Date</button>
+        </div>
+      </fieldset>
+      <div class="field" id="f-days">
+        <label for="days">Today's day count</label>
+        <input type="number" id="days" inputmode="numeric" min="0" max="99999" step="1" placeholder="30">
+        <p class="hint">Enter 0 if Day 1 begins tomorrow. The count goes up at midnight.</p>
+      </div>
+      <div class="field" id="f-date" hidden>
+        <label for="start">First day of the count</label>
+        <input type="date" id="start">
+        <p class="hint">That date is Day 1. Choose today or an earlier date.</p>
+      </div>
+      <p class="err" id="setup-err" role="alert"></p>
+      <div class="row">
+        <button type="submit" class="btn primary">Continue</button>
+        <button type="button" class="btn ghost" id="setup-cancel" hidden>Cancel</button>
+      </div>
+    </form>
+  </section>
+
+  <section id="v-choose" hidden>
+    <h2 tabindex="-1">Choose Your Chip!</h2>
+    <p class="lede">Tap the one you like. You can change it any time.</p>
+    <div class="grid" id="grid"></div>
+    <button type="button" class="btn ghost" id="choose-back">Back</button>
+  </section>
+
+  <section id="v-chip" hidden>
+    <h2 class="sr" tabindex="-1">Your chip</h2>
+    <div class="stage" id="stage"></div>
+    <p class="meta" id="since"></p>
+    <p class="meta" id="next" style="margin-bottom:16px"></p>
+    <div class="row" id="actions">
+      <button type="button" class="btn" id="a-label">Edit label</button>
+      <button type="button" class="btn" id="a-style">Change chip</button>
+      <button type="button" class="btn" id="a-save">Save image</button>
+      <button type="button" class="btn" id="a-reset">Reset</button>
+      <button type="button" class="btn" id="a-new">New chip</button>
+    </div>
+    <form class="panel" id="edit-panel" hidden novalidate>
+      <label for="newlabel">Label</label>
+      <input type="text" id="newlabel" maxlength="40" autocomplete="off">
+      <p class="err" id="label-err" role="alert" style="margin-top:8px"></p>
+      <div class="row">
+        <button type="submit" class="btn primary">Save label</button>
+        <button type="button" class="btn ghost" id="edit-cancel">Cancel</button>
+      </div>
+    </form>
+    <div class="panel" id="reset-panel" hidden>
+      <p>Reset to Day 1 starting today? Your old count will be gone.</p>
+      <div class="row">
+        <button type="button" class="btn primary" id="reset-yes">Yes, reset</button>
+        <button type="button" class="btn ghost" id="reset-no">Keep my count</button>
+      </div>
+    </div>
+    <p class="meta" id="store-note" hidden style="margin-top:14px">This browser is not keeping saved data, so your chip will be gone when you close the page.</p>
+  </section>
+</main>
+<div id="toast" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  var KEY = 'dayChip.v1';
+  var F_SANS = "'Arial Rounded MT Bold','Helvetica Neue',Arial,sans-serif";
+  var F_SERIF = "'Times New Roman',Times,'Liberation Serif',serif";
+  var F_MONO = "'Courier New',Courier,monospace";
+
+  var COLORS = [
+    { min: 0,   max: 0,        name: 'Black',        base: '#161616', dark: '#555555', light: '#A8A8A8', text: '#F5F5F5' },
+    { min: 1,   max: 1,        name: 'Red',          base: '#D32F2F', dark: '#8E1B1B', light: '#F8B9B9', text: '#FFFFFF' },
+    { min: 2,   max: 6,        name: 'Orange',       base: '#F28C28', dark: '#A8560A', light: '#FFD6AE', text: '#2A1400' },
+    { min: 7,   max: 13,       name: 'Light orange', base: '#FFB870', dark: '#C77A2A', light: '#FFE5C8', text: '#3A1D00' },
+    { min: 14,  max: 28,       name: 'Yellow',       base: '#F8D83A', dark: '#B79300', light: '#FFF3A8', text: '#352B00' },
+    { min: 29,  max: 56,       name: 'Green',        base: '#2A8B40', dark: '#176129', light: '#A8E3B5', text: '#FFFFFF' },
+    { min: 57,  max: 179,      name: 'Light green',  base: '#A5DC74', dark: '#5E9B2E', light: '#E4F7CC', text: '#183205' },
+    { min: 180, max: 269,      name: 'Blue',         base: '#2A6FD0', dark: '#184A96', light: '#BCD7F9', text: '#FFFFFF' },
+    { min: 270, max: 364,      name: 'Light blue',   base: '#8FCBF3', dark: '#3F8CC1', light: '#E0F2FD', text: '#0C2C47' },
+    { min: 365, max: Infinity, name: 'Purple',       base: '#7048C4', dark: '#472A8C', light: '#D7C8F6', text: '#FFFFFF' }
+  ];
+
+  /* ---------- dates and counting (local midnight to midnight) ---------- */
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function todayNum() {
+    var n = new Date();
+    return Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 864e5);
+  }
+  function numToISO(n) {
+    var d = new Date(n * 864e5);
+    return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+  }
+  function todayISO() { return numToISO(todayNum()); }
+  function parseISO(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || '');
+    if (!m) return null;
+    var y = +m[1], mo = +m[2] - 1, d = +m[3];
+    var t = Date.UTC(y, mo, d);
+    var dt = new Date(t);
+    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) return null;
+    return Math.floor(t / 864e5);
+  }
+  function fmtDate(iso) {
+    var n = parseISO(iso);
+    return new Date(n * 864e5).toLocaleDateString(undefined, {
+      weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC'
+    });
+  }
+  function daysOf(st) {
+    var s = parseISO(st.start);
+    var d = todayNum() - s + 1;
+    return d < 0 ? 0 : d;
+  }
+  function colorFor(d) {
+    for (var i = 0; i < COLORS.length; i++) {
+      if (d >= COLORS[i].min && d <= COLORS[i].max) return COLORS[i];
+    }
+    return COLORS[COLORS.length - 1];
+  }
+  function model(d) {
+    var c = colorFor(d);
+    if (d >= 365) {
+      var y = Math.floor(d / 365), r = d % 365;
+      var w = y === 1 ? 'year' : 'years';
+      var rd = '+ ' + r + ' ' + (r === 1 ? 'day' : 'days');
+      return { d: d, c: c, years: true, big: String(y), sub: w + ' ' + rd, subLines: [w, rd] };
+    }
+    return { d: d, c: c, years: false, big: String(d), sub: '', subLines: [] };
+  }
+  function summary(m, label) {
+    return label + ' · ' + (m.years ? m.big + ' ' + m.sub : 'Day ' + m.big);
+  }
+  function nextInfo(d) {
+    for (var i = 0; i < COLORS.length; i++) {
+      if (COLORS[i].min > d) {
+        var n = COLORS[i].min - d;
+        return 'Next color: ' + COLORS[i].name + ' in ' + n + (n === 1 ? ' day' : ' days');
+      }
+    }
+    return '';
+  }
+
+  /* ---------- chip drawing ---------- */
+  function esc(s) {
+    return String(s).replace(/[&<>"]/g, function (ch) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch];
+    });
+  }
+  function txt(x, y, s, size, fill, font, avail) {
+    if (!s) return '';
+    var est = s.length * size * 0.58;
+    var fit = (avail && est > avail) ? ' textLength="' + avail.toFixed(1) + '" lengthAdjust="spacingAndGlyphs"' : '';
+    return '<text x="' + x + '" y="' + (y + size * 0.35).toFixed(1) + '" text-anchor="middle" font-family="' +
+      font + '" font-weight="700" font-size="' + size.toFixed(1) + '" fill="' + fill + '"' + fit + '>' + esc(s) + '</text>';
+  }
+  function wrap(s, maxChars, maxLines) {
+    var words = String(s).trim().split(/\s+/).filter(Boolean), lines = [], cur = '';
+    words.forEach(function (w) {
+      if (!cur) cur = w;
+      else if ((cur + ' ' + w).length <= maxChars) cur += ' ' + w;
+      else { lines.push(cur); cur = w; }
+    });
+    if (cur) lines.push(cur);
+    while (lines.length > maxLines) {
+      var last = lines.pop();
+      lines[lines.length - 1] += ' ' + last;
+    }
+    return lines.length ? lines : [''];
+  }
+  function circAvail(R) {
+    return function (dy, size) {
+      var d = Math.abs(dy) + size * 0.55;
+      return d >= R ? 10 : 2 * Math.sqrt(R * R - d * d) * 0.94;
+    };
+  }
+  function hexAvail(R) {
+    return function (dy, size) {
+      var d = Math.abs(dy) + size * 0.55;
+      return Math.max(10, 2 * (R - d / 1.732) * 0.94);
+    };
+  }
+  function geo(sc, maxChars, avail) { return { cx: 120, cy: 120, sc: sc, maxChars: maxChars, avail: avail }; }
+
+  function stack(m, label, g, col, fonts) {
+    var sc = g.sc, cx = g.cx, cy = g.cy;
+    var lines = wrap(label, g.maxChars, 3), n = lines.length;
+    var longest = 1;
+    lines.forEach(function (ln) { if (ln.length > longest) longest = ln.length; });
+    var fk = Math.max(0.55, Math.min(1, g.maxChars * 1.12 / longest));
+    var ls = (n === 1 ? 20 : n === 2 ? 17 : 14.5) * sc * fk, lh = ls * 1.2;
+    var nl = m.big.length;
+    var ns = (nl <= 1 ? 92 : nl === 2 ? 84 : nl === 3 ? 70 : nl === 4 ? 56 : 46) * sc * (n === 3 ? 0.84 : 1);
+    var ny = cy + (m.sub ? 4 : 10) * sc;
+    var out = '';
+    var lastY = ny - ns * 0.42 - ls * 0.5 - 4 * sc;
+    for (var i = 0; i < n; i++) {
+      var y = lastY - (n - 1 - i) * lh;
+      out += txt(cx, y, lines[i], ls, col, fonts.label, g.avail(y - cy, ls));
+    }
+    out += txt(cx, ny, m.big, ns, col, fonts.num, g.avail(ny - cy, ns * 0.5));
+    if (m.sub) {
+      var sy = ny + ns * 0.42 + 12 * sc;
+      out += txt(cx, sy, m.sub, 12.5 * sc, col, fonts.label, g.avail(sy - cy, 12 * sc));
+    }
+    return out;
+  }
+  function hexPts(cx, cy, R) {
+    var p = [];
+    for (var k = 0; k < 6; k++) {
+      var a = Math.PI / 3 * k;
+      p.push((cx + R * Math.cos(a)).toFixed(1) + ',' + (cy + R * Math.sin(a)).toFixed(1));
+    }
+    return p.join(' ');
+  }
+  function starPts(cx, cy, R, r) {
+    var p = [];
+    for (var k = 0; k < 10; k++) {
+      var a = -Math.PI / 2 + Math.PI / 5 * k, rad = k % 2 ? r : R;
+      p.push((cx + rad * Math.cos(a)).toFixed(1) + ',' + (cy + rad * Math.sin(a)).toFixed(1));
+    }
+    return p.join(' ');
+  }
+
+  function classic(m, label) {
+    var c = m.c, g = geo(1, 14, circAvail(88));
+    return { w: 240, h: 240, body:
+      '<circle cx="120" cy="120" r="112" fill="' + c.base + '" stroke="' + c.dark + '" stroke-width="6"/>' +
+      '<circle cx="120" cy="120" r="97" fill="none" stroke="' + c.light + '" stroke-width="3"/>' +
+      stack(m, label, g, c.text, { label: F_SANS, num: F_SANS }) };
+  }
+  function vegas(m, label) {
+    var c = m.c, g = geo(0.74, 11, circAvail(64));
+    return { w: 240, h: 240, body:
+      '<circle cx="120" cy="120" r="112" fill="' + c.base + '" stroke="' + c.dark + '" stroke-width="2"/>' +
+      '<circle cx="120" cy="120" r="101" fill="none" stroke="' + c.light + '" stroke-width="20" stroke-dasharray="25 14.66" stroke-dashoffset="12.5" transform="rotate(-90 120 120)"/>' +
+      '<circle cx="120" cy="120" r="80" fill="' + c.base + '" stroke="#E1B84C" stroke-width="3"/>' +
+      '<circle cx="120" cy="120" r="73" fill="none" stroke="' + c.light + '" stroke-width="1.5" stroke-dasharray="2 4"/>' +
+      stack(m, label, g, c.text, { label: F_SERIF, num: F_SERIF }) };
+  }
+  function medal(m, label) {
+    var c = m.c, g = geo(0.92, 13, circAvail(80));
+    return { w: 240, h: 240, body:
+      '<circle cx="120" cy="120" r="112" fill="' + c.dark + '"/>' +
+      '<circle cx="120" cy="120" r="104" fill="' + c.base + '" stroke="' + c.light + '" stroke-width="2"/>' +
+      '<circle cx="120" cy="120" r="98" fill="none" stroke="' + c.light + '" stroke-width="3" stroke-linecap="round" stroke-dasharray="0.1 10.16"/>' +
+      '<circle cx="120" cy="120" r="89" fill="none" stroke="' + c.light + '" stroke-width="1" opacity="0.85"/>' +
+      stack(m, label, g, c.text, { label: F_SERIF, num: F_SERIF }) };
+  }
+  function fob(m, label) {
+    var c = m.c, cx = 80, cy = 166, hw = 60, hh = 132, iw = 52, ih = 114;
+    var av = function (dy, size) {
+      var d = Math.abs(dy) + size * 0.5;
+      return d >= ih - 8 ? 10 : 2 * iw * (1 - d / ih) * 0.92;
+    };
+    var lines = wrap(label, 10, 3), n = lines.length;
+    var longest = 1;
+    lines.forEach(function (ln) { if (ln.length > longest) longest = ln.length; });
+    var fk = Math.max(0.6, Math.min(1, 11 / longest));
+    var ls = (n === 1 ? 12.5 : n === 2 ? 12.5 : 12) * fk, lh = ls * 1.2;
+    var nl = m.big.length;
+    var ns = (nl <= 1 ? 60 : nl === 2 ? 54 : nl === 3 ? 46 : 36) * (n === 3 ? 0.88 : 1);
+    var ny = cy + (m.years ? -2 : 6);
+    var lastY = ny - ns * 0.42 - ls * 0.5 - 4;
+    var out = '';
+    for (var i = 0; i < n; i++) {
+      var y = lastY - (n - 1 - i) * lh;
+      out += txt(cx, y, lines[i], ls, c.text, F_SANS, av(y - cy, ls));
+    }
+    out += txt(cx, ny, m.big, ns, c.text, F_SANS, av(ny - cy, ns * 0.5));
+    if (m.years) {
+      var y1 = ny + ns * 0.42 + 11;
+      out += txt(cx, y1, m.subLines[0], 12, c.text, F_SANS, av(y1 - cy, 12));
+      out += txt(cx, y1 + 14, m.subLines[1], 12, c.text, F_SANS, av(y1 + 14 - cy, 12));
+    }
+    var outer = cx + ',' + (cy - hh) + ' ' + (cx + hw) + ',' + cy + ' ' + cx + ',' + (cy + hh) + ' ' + (cx - hw) + ',' + cy;
+    var inner = cx + ',' + (cy - ih) + ' ' + (cx + iw) + ',' + cy + ' ' + cx + ',' + (cy + ih) + ' ' + (cx - iw) + ',' + cy;
+    return { w: 160, h: 312, body:
+      '<polygon points="' + outer + '" fill="' + c.base + '" stroke="' + c.dark + '" stroke-width="5" stroke-linejoin="round"/>' +
+      '<polygon points="' + inner + '" fill="none" stroke="' + c.light + '" stroke-width="2" stroke-linejoin="round"/>' +
+      '<circle cx="80" cy="60" r="5.5" fill="#000" fill-opacity="0.55" stroke="' + c.dark + '" stroke-width="1.5"/>' +
+      '<circle cx="80" cy="40" r="20" fill="none" stroke="#7C858F" stroke-width="4.5"/>' +
+      '<circle cx="80" cy="40" r="20" fill="none" stroke="#D5DBE1" stroke-width="1.4"/>' +
+      '<circle cx="80" cy="264" r="2.6" fill="' + c.light + '"/>' +
+      out };
+  }
+  function digital(m, label) {
+    var c = m.c, g = geo(0.84, 12, circAvail(78));
+    var rim = c.name === 'Black' ? '#7A7A7A' : c.base;
+    return { w: 240, h: 240, body:
+      '<circle cx="120" cy="120" r="112" fill="#1B1D21" stroke="#3A3E45" stroke-width="4"/>' +
+      '<circle cx="120" cy="120" r="98" fill="none" stroke="' + rim + '" stroke-width="10"/>' +
+      '<circle cx="120" cy="120" r="86" fill="#0E1013" stroke="#2A2E34" stroke-width="2"/>' +
+      stack(m, label, g, c.light, { label: F_MONO, num: F_MONO }) };
+  }
+  function challenge(m, label) {
+    var c = m.c, g = geo(0.88, 12, circAvail(76));
+    return { w: 240, h: 240, body:
+      '<circle cx="120" cy="120" r="108" fill="none" stroke="' + c.dark + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="0.1 10.5"/>' +
+      '<circle cx="120" cy="120" r="100" fill="' + c.base + '"/>' +
+      '<circle cx="120" cy="120" r="84" fill="none" stroke="' + c.dark + '" stroke-width="2.5"/>' +
+      '<polygon points="' + starPts(120, 190, 8, 3.4) + '" fill="' + c.dark + '"/>' +
+      stack(m, label, g, c.text, { label: F_SANS, num: F_SANS }) };
+  }
+  function hexagon(m, label) {
+    var c = m.c, g = geo(0.96, 13, hexAvail(90));
+    return { w: 240, h: 240, body:
+      '<polygon points="' + hexPts(120, 120, 112) + '" fill="' + c.base + '" stroke="' + c.dark + '" stroke-width="6" stroke-linejoin="round"/>' +
+      '<polygon points="' + hexPts(120, 120, 96) + '" fill="none" stroke="' + c.light + '" stroke-width="3" stroke-linejoin="round"/>' +
+      stack(m, label, g, c.text, { label: F_SANS, num: F_SANS }) };
+  }
+
+  var STYLES = [
+    { name: 'Classic coin',    draw: classic },
+    { name: 'Vegas casino',    draw: vegas },
+    { name: 'Medallion',       draw: medal },
+    { name: 'Hotel key fob',   draw: fob },
+    { name: 'Digital readout', draw: digital },
+    { name: 'Challenge coin',  draw: challenge },
+    { name: 'Hexagon token',   draw: hexagon }
+  ];
+
+  function chipSVG(i, m, label) {
+    var o = STYLES[i].draw(m, label);
+    return {
+      w: o.w, h: o.h,
+      svg: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' + o.w + ' ' + o.h + '" width="' + o.w + '" height="' + o.h +
+        '" role="img" aria-label="' + esc(summary(m, label)) + '">' + o.body + '</svg>'
+    };
+  }
+
+  /* ---------- storage ---------- */
+  var storageOK = true;
+  try { localStorage.setItem('__dc', '1'); localStorage.removeItem('__dc'); } catch (e) { storageOK = false; }
+  function load() {
+    try {
+      var s = localStorage.getItem(KEY);
+      if (!s) return null;
+      var o = JSON.parse(s);
+      if (o && typeof o.label === 'string' && parseISO(o.start) !== null && STYLES[o.style]) return o;
+    } catch (e) {}
+    return null;
+  }
+  function persist() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+
+  /* ---------- state and views ---------- */
+  var state = load();
+  var draft = null;
+  var chooseMode = 'new';
+  var setupReturn = null;
+  var view = 'home';
+  var lastDay = todayNum();
+  var downloads = null;
+
+  function $(id) { return document.getElementById(id); }
+  function on(id, ev, fn) { $(id).addEventListener(ev, fn); }
+  var VIEWS = ['home', 'setup', 'choose', 'chip'];
+
+  function show(name) {
+    view = name;
+    VIEWS.forEach(function (v) { $('v-' + v).hidden = (v !== name); });
+    var h = $('v-' + name).querySelector('h1,h2');
+    if (h) h.focus();
+    window.scrollTo(0, 0);
+  }
+
+  var toastTimer = null;
+  function toast(msg) {
+    var t = $('toast');
+    t.innerHTML = '<span></span>';
+    t.firstChild.textContent = msg;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.innerHTML = ''; }, 2600);
+  }
+
+  function renderHome() {
+    var d = daysOf(state), m = model(d);
+    $('home-stage').innerHTML = chipSVG(state.style, m, state.label).svg;
+    $('home-sum').textContent = summary(m, state.label);
+  }
+
+  function renderChip() {
+    var d = daysOf(state), m = model(d);
+    $('stage').innerHTML = chipSVG(state.style, m, state.label).svg;
+    var line;
+    if (d === 0) line = 'Day 1 begins ' + fmtDate(state.start) + '.';
+    else if (d === 1) line = 'Day 1 is today.';
+    else line = 'Day 1 was ' + fmtDate(state.start) + '.';
+    $('since').textContent = line;
+    $('next').textContent = nextInfo(d);
+    $('store-note').hidden = storageOK;
+  }
+
+  function renderGrid() {
+    var src = chooseMode === 'new' ? draft : state;
+    var m = model(daysOf(src));
+    var html = '';
+    STYLES.forEach(function (s, i) {
+      var pressed = chooseMode === 'change' && state.style === i;
+      html += '<button type="button" class="card" data-i="' + i + '" aria-pressed="' + pressed + '">' +
+        '<div class="art">' + chipSVG(i, m, src.label).svg + '</div><span class="nm">' + esc((i + 1) + '. ' + s.name) + '</span></button>';
+    });
+    $('grid').innerHTML = html;
+  }
+
+  function refresh() {
+    if (!state) return;
+    if (view === 'chip') renderChip();
+    else if (view === 'home') renderHome();
+  }
+  function tick() {
+    var t = todayNum();
+    if (t !== lastDay) { lastDay = t; refresh(); }
+  }
+
+  function closePanels() {
+    $('edit-panel').hidden = true;
+    $('reset-panel').hidden = true;
+  }
+
+  function openSetup(returnTo) {
+    setupReturn = returnTo;
+    $('label').value = 'Days Sober';
+    $('days').value = '';
+    $('start').value = '';
+    $('start').max = todayISO();
+    $('setup-err').textContent = '';
+    setMode('days');
+    $('setup-cancel').hidden = !state;
+    show('setup');
+  }
+
+  function setMode(mode) {
+    var isDays = mode === 'days';
+    $('mode-days').setAttribute('aria-pressed', String(isDays));
+    $('mode-date').setAttribute('aria-pressed', String(!isDays));
+    $('f-days').hidden = !isDays;
+    $('f-date').hidden = isDays;
+    $('setup-err').textContent = '';
+  }
+
+  /* ---------- image export ---------- */
+  function slug(s) {
+    var t = String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return t || 'chip';
+  }
+  function saveBlob(blob, name) {
+    if (downloads) {
+      downloads.save({ filename: name, data: blob }).then(function () {
+        toast('Image saved');
+      }).catch(function (e) {
+        if (e && e.code === 'declined') return;
+        toast('Could not save the image here');
+      });
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+    toast('Image saved');
+  }
+  function exportPNG() {
+    var d = daysOf(state), m = model(d);
+    var o = chipSVG(state.style, m, state.label);
+    var scale = 3, W = o.w * scale, H = o.h * scale;
+    var img = new Image();
+    img.onload = function () {
+      var cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      var ctx = cv.getContext('2d');
+      ctx.drawImage(img, 0, 0, W, H);
+      cv.toBlob(function (b) {
+        if (!b) { toast('Could not make the image'); return; }
+        saveBlob(b, slug(state.label) + '-' + (m.years ? m.big + 'y' : 'day-' + m.big) + '.png');
+      }, 'image/png');
+    };
+    img.onerror = function () { toast('Could not make the image'); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(o.svg);
+  }
+
+  /* ---------- events ---------- */
+  on('h-prev', 'click', function () { closePanels(); renderChip(); show('chip'); });
+  on('h-new', 'click', function () { openSetup('home'); });
+
+  on('mode-days', 'click', function () { setMode('days'); });
+  on('mode-date', 'click', function () { setMode('date'); });
+  on('setup-cancel', 'click', function () {
+    if (setupReturn === 'chip') { renderChip(); show('chip'); }
+    else { renderHome(); show('home'); }
+  });
+
+  on('setup-form', 'submit', function (ev) {
+    ev.preventDefault();
+    var err = $('setup-err');
+    var label = $('label').value.trim();
+    if (!label) { err.textContent = 'Add a short name for this chip, like Days Sober.'; $('label').focus(); return; }
+    var start;
+    if ($('mode-days').getAttribute('aria-pressed') === 'true') {
+      var raw = $('days').value.trim();
+      var n = Number(raw);
+      if (raw === '' || !isFinite(n) || n < 0 || n > 99999 || Math.floor(n) !== n) {
+        err.textContent = 'Enter a whole number, 0 or higher.'; $('days').focus(); return;
+      }
+      start = numToISO(todayNum() - (n - 1));
+    } else {
+      var v = $('start').value;
+      var p = parseISO(v);
+      if (p === null) { err.textContent = 'Pick the first day of your count.'; $('start').focus(); return; }
+      if (p > todayNum()) { err.textContent = 'Pick today or an earlier date.'; $('start').focus(); return; }
+      if (v < '1900-01-01') { err.textContent = 'That date is too far back.'; $('start').focus(); return; }
+      start = v;
+    }
+    err.textContent = '';
+    draft = { label: label, start: start };
+    chooseMode = 'new';
+    renderGrid();
+    show('choose');
+  });
+
+  on('grid', 'click', function (ev) {
+    var btn = ev.target.closest ? ev.target.closest('button.card') : null;
+    if (!btn) return;
+    var i = Number(btn.getAttribute('data-i'));
+    if (chooseMode === 'new') {
+      state = { label: draft.label, start: draft.start, style: i };
+      draft = null;
+    } else {
+      state.style = i;
+    }
+    persist();
+    closePanels();
+    renderChip();
+    show('chip');
+  });
+  on('choose-back', 'click', function () {
+    if (chooseMode === 'new') show('setup');
+    else { renderChip(); show('chip'); }
+  });
+
+  on('a-style', 'click', function () { chooseMode = 'change'; renderGrid(); show('choose'); });
+  on('a-new', 'click', function () { openSetup('chip'); });
+  on('a-save', 'click', exportPNG);
+
+  on('a-label', 'click', function () {
+    $('reset-panel').hidden = true;
+    $('newlabel').value = state.label;
+    $('label-err').textContent = '';
+    $('edit-panel').hidden = false;
+    $('newlabel').focus();
+  });
+  on('edit-cancel', 'click', closePanels);
+  on('edit-panel', 'submit', function (ev) {
+    ev.preventDefault();
+    var v = $('newlabel').value.trim();
+    if (!v) { $('label-err').textContent = 'The label cannot be empty.'; return; }
+    state.label = v;
+    persist();
+    closePanels();
+    renderChip();
+    toast('Label updated');
+  });
+
+  on('a-reset', 'click', function () {
+    $('edit-panel').hidden = true;
+    $('reset-panel').hidden = false;
+    $('reset-yes').focus();
+  });
+  on('reset-no', 'click', closePanels);
+  on('reset-yes', 'click', function () {
+    state.start = todayISO();
+    persist();
+    closePanels();
+    renderChip();
+    toast('Back to Day 1');
+  });
+
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
+  setInterval(tick, 30000);
+
+  /* ---------- start ---------- */
+  if (window.claude && typeof window.claude.use === 'function') {
+    window.claude.use('downloads').then(function (d) { downloads = d; }, function () {});
+  }
+  if (state) { renderHome(); show('home'); }
+  else { openSetup(null); }
+})();
+</script>
+
+</body></html>
